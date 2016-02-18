@@ -602,7 +602,7 @@
                     setStmt.append(assignStmt +".setBytes(" + index + ", java.nio.ByteBuffer.wrap(" + columnValue + "));\r\n");
                 }
             }else if("timestamp".equals(dbType)){
-                setStmt.append(assignStmt +".setDate(" + index + ", " + columnValue + ");\r\n");
+                setStmt.append(assignStmt +".setTimestamp(" + index + ", " + columnValue + ");\r\n");
             }else if("decimal".equals(dbType)){
                 setStmt.append(assignStmt +".setDecimal(" + index + ", " + columnValue + ");\r\n");
             }else if("double".equals(dbType)){

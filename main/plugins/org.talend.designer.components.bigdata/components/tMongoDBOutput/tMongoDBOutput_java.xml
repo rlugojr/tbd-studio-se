@@ -57,10 +57,11 @@
             NUM_ROW="3"
             SHOW_IF="(USE_EXISTING_CONNECTION == 'false')"
             GROUP="CONNECTION">
-            <ITEMS DEFAULT="MONGODB_3_0_X">
+            <ITEMS DEFAULT="MONGODB_3_2_X">
                 <ITEM NAME="MONGODB_2_5_X" VALUE="MONGODB_2_5_X"/>
                 <ITEM NAME="MONGODB_2_6_X" VALUE="MONGODB_2_6_X"/>
                 <ITEM NAME="MONGODB_3_0_X" VALUE="MONGODB_3_0_X"/>
+                <ITEM NAME="MONGODB_3_2_X" VALUE="MONGODB_3_2_X"/>
             </ITEMS>
         </PARAMETER>
         <PARAMETER
@@ -168,9 +169,19 @@
             <ITEMS DEFAULT="NEGOTIATE_MEC">
                 <ITEM NAME="NEGOTIATE_MEC" VALUE="NEGOTIATE_MEC" SHOW_IF="(DB_VERSION!='INVALID')"/>
                 <ITEM NAME="PLAIN_MEC" VALUE="PLAIN_MEC" SHOW_IF="(DB_VERSION!='MONGODB_2_5_X')"/>
-                <ITEM NAME="SCRAMSHA1_MEC" VALUE="SCRAMSHA1_MEC" SHOW_IF="(DB_VERSION=='MONGODB_3_0_X')" />
+                <ITEM NAME="SCRAMSHA1_MEC" VALUE="SCRAMSHA1_MEC" SHOW_IF="(DB_VERSION=='MONGODB_3_0_X') OR (DB_VERSION=='MONGODB_3_2_X')" />
                 <ITEM NAME="KERBEROS_MEC" VALUE="KERBEROS_MEC" SHOW_IF="(DB_VERSION!='INVALID')"/>
             </ITEMS>
+        </PARAMETER>
+
+        <PARAMETER FIELD="CHECK" NAME="SET_AUTHENTICATION_DATABASE" REPOSITORY_VALUE="SET_AUTHENTICATION_DATABASE"
+            NUM_ROW="18" SHOW_IF="((AUTHENTICATION_MECHANISM=='NEGOTIATE_MEC') OR (AUTHENTICATION_MECHANISM=='SCRAMSHA1_MEC')) AND (REQUIRED_AUTHENTICATION == 'true')" GROUP="AUTHENTICATION">
+            <DEFAULT>false</DEFAULT>
+        </PARAMETER>
+
+        <PARAMETER FIELD="TEXT" NAME="AUTHENTICATION_DATABASE" REPOSITORY_VALUE="AUTHENTICATION_DATABASE" NUM_ROW="19"
+            SHOW_IF="(SET_AUTHENTICATION_DATABASE=='true') AND (isShow[SET_AUTHENTICATION_DATABASE])" GROUP="AUTHENTICATION">
+            <DEFAULT>""</DEFAULT>
         </PARAMETER>
 
         <PARAMETER
@@ -445,6 +456,8 @@
             <TEMPLATE_PARAM SOURCE="self.BULK_WRITE_SIZE" TARGET="Out.BULK_WRITE_SIZE" />
             <TEMPLATE_PARAM SOURCE="self.REQUIRED_AUTHENTICATION" TARGET="Out.REQUIRED_AUTHENTICATION" />
             <TEMPLATE_PARAM SOURCE="self.AUTHENTICATION_MECHANISM" TARGET="Out.AUTHENTICATION_MECHANISM" />
+            <TEMPLATE_PARAM SOURCE="self.SET_AUTHENTICATION_DATABASE" TARGET="Out.SET_AUTHENTICATION_DATABASE" />
+            <TEMPLATE_PARAM SOURCE="self.AUTHENTICATION_DATABASE" TARGET="Out.AUTHENTICATION_DATABASE" />
             <TEMPLATE_PARAM SOURCE="self.KRB_USER_PRINCIPAL" TARGET="Out.KRB_USER_PRINCIPAL" />
             <TEMPLATE_PARAM SOURCE="self.KRB_REALM" TARGET="Out.KRB_REALM" />
             <TEMPLATE_PARAM SOURCE="self.KRB_KDC" TARGET="Out.KRB_KDC" />
@@ -460,10 +473,9 @@
 
         </TEMPLATES>
         <IMPORTS>
-            <IMPORT MODULE="mongo-java-driver-2.11.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.11.2/6.0.0"  NAME="mongo-2.11.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.11.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_2_5_X') AND (USE_EXISTING_CONNECTION == 'false')" />
-            <!-- mongo java driver 2.12.0 give the compatibility with the new features of mongoDB 2.6 -->
-            <IMPORT MODULE="mongo-java-driver-2.12.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.12.2/6.0.0"  NAME="mongo-2.12.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.12.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_2_6_X') AND (USE_EXISTING_CONNECTION == 'false')" />
-            <IMPORT MODULE="mongo-java-driver-2.13.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.13.2/6.0.0"  NAME="mongo-2.13.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.13.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_3_0_X' AND USE_EXISTING_CONNECTION == 'false')" />
+
+            <IMPORT MODULE="mongo-java-driver-2.14.1.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.14.1/6.0.0"  NAME="mongo-java-driver-2.14.1" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.14.1.jar" REQUIRED_IF="(USE_EXISTING_CONNECTION == 'false')" />
+
         </IMPORTS>
     </CODEGENERATION>
     <RETURNS>

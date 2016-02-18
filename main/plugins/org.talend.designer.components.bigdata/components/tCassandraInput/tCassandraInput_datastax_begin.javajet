@@ -68,16 +68,16 @@
     			<%
     			}else if("map".equals(dbType)){
     			%>
-    				<%=connName%>.<%=columnName%> = row_<%=cid%>.getMap("<%=dbColumnName%>", Object.class, Object.class);
+    				<%=connName%>.<%=columnName%> = row_<%=cid%>.getObject("<%=dbColumnName%>");
     			<%
     			}else if("set".equals(dbType)){
     			%>
-    				<%=connName%>.<%=columnName%> = row_<%=cid%>.getSet("<%=dbColumnName%>", Object.class);
+    				<%=connName%>.<%=columnName%> = row_<%=cid%>.getObject("<%=dbColumnName%>");
     			<%
     			}
     		}else if(javaType == JavaTypesManager.LIST){
         	%>
-        		<%=connName%>.<%=columnName%> = row_<%=cid%>.getList("<%=dbColumnName%>", Object.class);	
+        		<%=connName%>.<%=columnName%> = (java.util.List)row_<%=cid%>.getObject("<%=dbColumnName%>");	
         	<%
         	}else if(javaType == JavaTypesManager.BOOLEAN){
         	%>
@@ -92,7 +92,7 @@
         	<%	
     		}else if(javaType == JavaTypesManager.DATE){
         	%>
-        		<%=connName%>.<%=columnName%> = row_<%=cid%>.getDate("<%=dbColumnName%>");	
+        		<%=connName%>.<%=columnName%> = row_<%=cid%>.getTimestamp("<%=dbColumnName%>");	
         	<%
     		}else if(javaType == JavaTypesManager.BIGDECIMAL){
         	%> 

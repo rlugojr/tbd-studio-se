@@ -56,10 +56,11 @@
             NUM_ROW="3"
             SHOW_IF="(USE_EXISTING_CONNECTION == 'false')"
             GROUP="CONNECTION">
-            <ITEMS DEFAULT="MONGODB_3_0_X">
+            <ITEMS DEFAULT="MONGODB_3_2_X">
                 <ITEM NAME="MONGODB_2_5_X" VALUE="MONGODB_2_5_X"/>
                 <ITEM NAME="MONGODB_2_6_X" VALUE="MONGODB_2_6_X"/>
                 <ITEM NAME="MONGODB_3_0_X" VALUE="MONGODB_3_0_X"/>
+                <ITEM NAME="MONGODB_3_2_X" VALUE="MONGODB_3_2_X"/>
             </ITEMS>
         </PARAMETER>
 		<PARAMETER
@@ -137,10 +138,21 @@
             <ITEMS DEFAULT="NEGOTIATE_MEC">
                 <ITEM NAME="NEGOTIATE_MEC" VALUE="NEGOTIATE_MEC" SHOW_IF="(DB_VERSION!='INVALID')"/>
                 <ITEM NAME="PLAIN_MEC" VALUE="PLAIN_MEC" SHOW_IF="(DB_VERSION!='MONGODB_2_5_X')"/>
-                <ITEM NAME="SCRAMSHA1_MEC" VALUE="SCRAMSHA1_MEC" SHOW_IF="(DB_VERSION=='MONGODB_3_0_X')" />
+                <ITEM NAME="SCRAMSHA1_MEC" VALUE="SCRAMSHA1_MEC" SHOW_IF="(DB_VERSION=='MONGODB_3_0_X') OR (DB_VERSION=='MONGODB_3_2_X')" />
                 <ITEM NAME="KERBEROS_MEC" VALUE="KERBEROS_MEC" SHOW_IF="(DB_VERSION!='INVALID')"/>
             </ITEMS>
         </PARAMETER>
+        
+        <PARAMETER FIELD="CHECK" NAME="SET_AUTHENTICATION_DATABASE" REPOSITORY_VALUE="SET_AUTHENTICATION_DATABASE"
+            NUM_ROW="18" SHOW_IF="((AUTHENTICATION_MECHANISM=='NEGOTIATE_MEC') OR (AUTHENTICATION_MECHANISM=='SCRAMSHA1_MEC')) AND (REQUIRED_AUTHENTICATION == 'true')" GROUP="AUTHENTICATION">
+            <DEFAULT>false</DEFAULT>
+        </PARAMETER>
+
+        <PARAMETER FIELD="TEXT" NAME="AUTHENTICATION_DATABASE" REPOSITORY_VALUE="AUTHENTICATION_DATABASE" NUM_ROW="19"
+            SHOW_IF="(SET_AUTHENTICATION_DATABASE=='true') AND (isShow[SET_AUTHENTICATION_DATABASE])" GROUP="AUTHENTICATION">
+            <DEFAULT>""</DEFAULT>
+        </PARAMETER>
+
         <PARAMETER
             FIELD="TEXT"
             NAME="USERNAME"
@@ -196,7 +208,15 @@
 			NAME="EXECUTE_KEYVALUECOMMAND"
 			FIELD="CHECK"
 			NUM_ROW="36"
-			SHOW_IF="(EXECUTE_COMMAND == 'true')"
+			SHOW_IF="(EXECUTE_COMMAND == 'true') AND (EXECUTE_JSONCOMMAND == 'false')"
+		>
+			<DEFAULT>false</DEFAULT>
+		</PARAMETER>
+		<PARAMETER
+			NAME="EXECUTE_JSONCOMMAND"
+			FIELD="CHECK"
+			NUM_ROW="37"
+			SHOW_IF="(EXECUTE_COMMAND == 'true') AND (EXECUTE_KEYVALUECOMMAND == 'false')"
 		>
 			<DEFAULT>false</DEFAULT>
 		</PARAMETER>
@@ -205,7 +225,7 @@
 			NAME="COMMAND"
 			REQUIRED="true"
 			NUM_ROW="40"
-			SHOW_IF="(EXECUTE_COMMAND == 'true') AND (EXECUTE_KEYVALUECOMMAND == 'false')"
+			SHOW_IF="(EXECUTE_COMMAND == 'true') AND (EXECUTE_KEYVALUECOMMAND == 'false') AND (EXECUTE_JSONCOMMAND == 'false')"
 		>
 			<DEFAULT>""</DEFAULT>
 		</PARAMETER>
@@ -221,6 +241,27 @@
 				<ITEM NAME="KEY" />
 				<ITEM NAME="VALUE" />
 			</ITEMS>
+		</PARAMETER>
+
+		<PARAMETER
+			FIELD="LABEL"
+			NAME="JSON_COMMAND_NOTE"
+			REQUIRED="false"
+			NUM_ROW="42"
+			SHOW_IF="(EXECUTE_COMMAND =='true') AND (EXECUTE_JSONCOMMAND == 'true')"
+		>
+			<DEFAULT>Note : Surround String values with single quotes</DEFAULT>
+		</PARAMETER>
+
+		<PARAMETER
+			FIELD="MEMO"
+			NAME="JSON_COMMAND"
+			REQUIRED="false"
+			NUM_ROW="43"
+			NB_LINES="5"
+			SHOW_IF="(EXECUTE_COMMAND =='true') AND (EXECUTE_JSONCOMMAND == 'true')"
+		>
+			<DEFAULT>"{createIndexes: 'restaurants', indexes : [{key : {restaurant_id: 1}, name: 'id_index_2', unique: true}]}"</DEFAULT>
 		</PARAMETER>
 
 		<PARAMETER
@@ -258,11 +299,10 @@
 
 	<CODEGENERATION>
 		<IMPORTS>
-			<IMPORT MODULE="mongo-java-driver-2.11.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.11.2/6.0.0"  NAME="mongo-2.11.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.11.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_2_5_X') AND (USE_EXISTING_CONNECTION == 'false')" />
-            <!-- mongo java driver 2.12.0 give the compatibility with the new features of mongoDB 2.6 -->
-            <IMPORT MODULE="mongo-java-driver-2.12.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.12.2/6.0.0"  NAME="mongo-2.12.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.12.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_2_6_X') AND (USE_EXISTING_CONNECTION == 'false')" />
-            <IMPORT MODULE="mongo-java-driver-2.13.2.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.13.2/6.0.0"  NAME="mongo-2.13.2" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.13.2.jar" REQUIRED_IF="(DB_VERSION=='MONGODB_3_0_X' AND USE_EXISTING_CONNECTION == 'false')" />
-		</IMPORTS>
+            
+            <IMPORT MODULE="mongo-java-driver-2.14.1.jar" MVN="mvn:org.talend.libraries/mongo-java-driver-2.14.1/6.0.0"  NAME="mongo-java-driver-2.14.1" UrlPath="platform:/plugin/org.talend.libraries.mongo/lib/mongo-java-driver-2.14.1.jar" REQUIRED_IF="(USE_EXISTING_CONNECTION == 'false')" />
+
+        </IMPORTS>
 	</CODEGENERATION>
 	<RETURNS/>
 </COMPONENT>
