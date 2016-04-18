@@ -32,9 +32,8 @@
 		<dependency>
 			<groupId>org.apache.atlas</groupId>
 			<artifactId>atlas-client</artifactId>
-			<version>0.5-incubating</version>
+			<version>0.7-incubating-SNAPSHOT</version>
 		</dependency>
-
 
 		<!-- Testing only. -->
 		<dependency>
