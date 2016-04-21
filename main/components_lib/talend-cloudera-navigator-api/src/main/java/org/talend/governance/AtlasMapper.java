@@ -1,10 +1,7 @@
 package org.talend.governance;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import org.apache.atlas.AtlasClient;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.typesystem.Referenceable;
@@ -51,13 +48,6 @@ public class AtlasMapper {
             System.out.println(entityJSON);
         }
 
-//        Collection<Referenceable> refs2 = navigatorNodes.stream()
-//                .map(node -> createEntity(node))
-//                .collect(Collectors.toList());
-//        refs2.stream()
-//                .map(ref -> InstanceSerialization.toJson(ref, true))
-//                .forEach(System.out::println);
-
 //        AtlasClient client = null;
 //        try {
 //            JSONArray guids = client.createEntity(refs);
@@ -83,46 +73,36 @@ public class AtlasMapper {
         HierarchicalTypeDefinition<ClassType> dbClsDef = TypesUtil
                 .createClassTypeDef(DATABASE_TYPE, DATABASE_TYPE, null,
                         TypesUtil.createUniqueRequiredAttrDef("name", DataTypes.STRING_TYPE),
-                        attrDef("description", DataTypes.STRING_TYPE),
-                        attrDef("locationUri", DataTypes.STRING_TYPE),
-                        attrDef("owner", DataTypes.STRING_TYPE),
-                        attrDef("createTime", DataTypes.LONG_TYPE));
+                        TypesUtil.createOptionalAttrDef("description", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("locationUri", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("owner", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("createTime", DataTypes.LONG_TYPE));
 
         HierarchicalTypeDefinition<ClassType> tblClsDef = TypesUtil
                 .createClassTypeDef(TABLE_TYPE, TABLE_TYPE, ImmutableSet.of("DataSet"),
-                        new AttributeDefinition(DB_ATTRIBUTE, DATABASE_TYPE, Multiplicity.REQUIRED, false, null),
+                        TypesUtil.createRequiredAttrDef(DB_ATTRIBUTE, DATABASE_TYPE),
                         new AttributeDefinition("sd", STORAGE_DESC_TYPE, Multiplicity.REQUIRED, true, null),
-                        attrDef("owner", DataTypes.STRING_TYPE),
-                        attrDef("createTime", DataTypes.LONG_TYPE),
-                        attrDef("lastAccessTime", DataTypes.LONG_TYPE),
-                        attrDef("retention", DataTypes.LONG_TYPE),
-                        attrDef("viewOriginalText", DataTypes.STRING_TYPE),
-                        attrDef("viewExpandedText", DataTypes.STRING_TYPE),
-                        attrDef("tableType", DataTypes.STRING_TYPE),
-                        attrDef("temporary", DataTypes.BOOLEAN_TYPE),
+                        TypesUtil.createOptionalAttrDef("owner", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("createTime", DataTypes.LONG_TYPE),
+                        TypesUtil.createOptionalAttrDef("lastAccessTime", DataTypes.LONG_TYPE),
+                        TypesUtil.createOptionalAttrDef("retention", DataTypes.LONG_TYPE),
+                        TypesUtil.createOptionalAttrDef("viewOriginalText", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("viewExpandedText", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("tableType", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("temporary", DataTypes.BOOLEAN_TYPE),
                         new AttributeDefinition(COLUMNS_ATTRIBUTE, DataTypes.arrayTypeName(COLUMN_TYPE),
                                 Multiplicity.COLLECTION, true, null));
 
         HierarchicalTypeDefinition<ClassType> columnClsDef = TypesUtil
                 .createClassTypeDef(COLUMN_TYPE, COLUMN_TYPE, null,
-                        attrDef("name", DataTypes.STRING_TYPE),
-                        attrDef("dataType", DataTypes.STRING_TYPE),
-                        attrDef("comment", DataTypes.STRING_TYPE));
+                        TypesUtil.createOptionalAttrDef("name", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("dataType", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("comment", DataTypes.STRING_TYPE));
 
         ImmutableList<HierarchicalTypeDefinition<ClassType>> classes =
                 ImmutableList.<HierarchicalTypeDefinition<ClassType>>of(tblClsDef, columnClsDef);
 
         return TypesUtil.getTypesDef(enums, structs, traits, classes);
-    }
-
-
-    AttributeDefinition attrDef(String name, IDataType dT) {
-        return attrDef(name, dT, Multiplicity.OPTIONAL, false, null);
-    }
-
-    AttributeDefinition attrDef(String name, IDataType dT, Multiplicity m, boolean isComposite,
-                                String reverseAttributeName) {
-        return new AttributeDefinition(name, dT.getName(), m, isComposite, reverseAttributeName);
     }
 
     /**
@@ -142,24 +122,6 @@ public class AtlasMapper {
             metadata.put("dataType", entry.getValue());
             columns.add(new Referenceable(COLUMN_TYPE, metadata));
         }
-
-//        List<Referenceable> columns = schema.entrySet().stream()
-//                .map(entry -> {
-//                    Map<String, Object> m = Maps.newHashMap();
-//                    m.put("name", entry.getKey());
-//                    m.put("dataType", entry.getValue());
-//                    return new Referenceable(COLUMN_TYPE, m);
-//                })
-//                .collect(Collectors.<Referenceable>toList());
-
-//        List<Referenceable> columns = schema.entrySet().stream()
-//                .map(entry -> {
-//                    return new Referenceable(COLUMN_TYPE,
-//                            new ImmutableMap.Builder<String, Object>()
-//                                    .put("name", entry.getKey())
-//                                    .put("dataType", entry.getValue()).build());})
-//                .collect(Collectors.<Referenceable>toList());
-
         table.set("columns", columns);
 
         // TODO These two are from IDs
