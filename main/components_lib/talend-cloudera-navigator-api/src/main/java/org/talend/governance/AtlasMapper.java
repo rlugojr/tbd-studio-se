@@ -8,6 +8,7 @@ import org.apache.atlas.typesystem.Referenceable;
 import org.apache.atlas.typesystem.TypesDef;
 import org.apache.atlas.typesystem.json.InstanceSerialization;
 import org.apache.atlas.typesystem.json.TypesSerialization;
+import org.apache.atlas.typesystem.persistence.Id;
 import org.apache.atlas.typesystem.types.*;
 import org.apache.atlas.typesystem.types.utils.TypesUtil;
 import org.codehaus.jettison.json.JSONArray;
@@ -50,6 +51,7 @@ public class AtlasMapper {
         Collection<Referenceable> refs = new ArrayList<>();
         for (NavigatorNode navigatorNode : navigatorNodes) {
             Referenceable ref = createEntity(navigatorNode);
+            Id id = createInstance(ref);
             refs.add(ref);
         }
         persist(refs);
@@ -84,6 +86,24 @@ public class AtlasMapper {
         return ids;
     }
 
+    private Id createInstance(Referenceable referenceable) {
+        String entityJSON = InstanceSerialization.toJson(referenceable, true);
+        System.out.println("Submitting new entity= " + entityJSON);
+        JSONArray guids = null;
+        try {
+            guids = client.createEntity(entityJSON);
+            String typeName = referenceable.getTypeName();
+            System.out.println("created instance for type " + typeName + ", guid: " + guids);
+            // return the Id for created instance with guid
+            return new Id(guids.getString(guids.length()-1), referenceable.getId().getVersion(),
+                    referenceable.getTypeName());
+//        } catch (AtlasServiceException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
 
     public JSONArray persist(Collection<Referenceable> refs) {
 //        for (Referenceable ref : refs) {
@@ -184,27 +204,90 @@ public class AtlasMapper {
      */
     private Referenceable createEntity(NavigatorNode navigatorNode) {
         //TODO Map given the navigatorType ID
-        Referenceable table = new Referenceable(TABLE_TYPE);
-        table.set("name", navigatorNode.getName());
 
+        Referenceable dbRef = null;
+        Id dbId = null;
+        try {
+            client.deleteEntity(DATABASE_TYPE, "name", "TESTDB");
+            client.deleteEntity(TABLE_TYPE, "name", navigatorNode.getName());
+
+            for(Map.Entry<String, String> entry : navigatorNode.getSchema().entrySet()) {
+                client.deleteEntity(COLUMN_TYPE, "name", entry.getKey());
+                client.deleteEntity(COLUMN_TYPE, "dataType", entry.getValue());
+            }
+
+            List<String> dbGuids = client.listEntities(DATABASE_TYPE);
+            dbRef = client.getEntity(DATABASE_TYPE, "name", "TESTDB");
+            dbId = dbRef.getId();
+//            for (String dbGuid : dbGuids) {
+//                Referenceable dbId = client.getEntity(dbGuid);
+//                System.out.println(dbId);
+//            }
+//            Referenceable r = client.getEntity(DATABASE_TYPE, "", "");
+//            System.out.println(dbs);
+        } catch (AtlasServiceException e) {
+            e.printStackTrace();
+        }
+
+        if (dbId == null) {
+            dbRef = new Referenceable(DATABASE_TYPE, "Dimension");
+            dbRef.set("name", "TESTDB");
+            dbRef.set("owner", "scott");
+            dbRef.set("createTime", System.currentTimeMillis());
+            dbId = createInstance(dbRef);
+        }
+
+        Referenceable sd = new Referenceable(STORAGE_DESC_TYPE);
+        sd.set("location", "hdfs://host:8000/apps/warehouse/sales");
+        sd.set("inputFormat", "TextInputFormat");
+        sd.set("outputFormat", "TextOutputFormat");
+        sd.set("compressed", true);
+
+        Referenceable table = new Referenceable(TABLE_TYPE, "Dimension", "Fact");
+        table.set("db", dbId);
+        table.set("name", navigatorNode.getName());
+        table.set("sd", sd);
+
+        // columns comes from the father
         Map<String, String> schema = navigatorNode.getSchema();
         List<Referenceable> columns = new ArrayList<>();
         for(Map.Entry<String, String> entry : schema.entrySet()) {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("name", entry.getKey());
-            metadata.put("dataType", entry.getValue());
-            columns.add(new Referenceable(COLUMN_TYPE, metadata));
+            Referenceable column = new Referenceable(COLUMN_TYPE); //, "Metric"
+            column.set("name", entry.getKey());
+            column.set("dataType", entry.getValue());
+            columns.add(column);
         }
         table.set("columns", columns);
 
-        // TODO These two are from IDs
-        List<String> inputNodes = navigatorNode.getInputNodes();
-        table.set("inputs", inputNodes);
 
-        List<String> outputNodes = navigatorNode.getOutputNodes();
-        table.set("outputs", outputNodes);
+        Referenceable process = new Referenceable(LOAD_PROCESS_TYPE, "ETL");
+        // super type attributes
+        process.set("name", navigatorNode.getName());
+//        referenceable.set("description", description);
+//        referenceable.set("inputs", ImmutableList.of(salesFact, timeDim));
+//        referenceable.set("outputs", ImmutableList.of(salesFactDaily));
+        process.set("inputs", ImmutableList.of());
+        process.set("outputs", ImmutableList.of());
 
-        return table;
+        process.set("user", "scott");
+        process.set("startTime", System.currentTimeMillis());
+        process.set("endTime", System.currentTimeMillis() + 10000);
+        process.set("queryText", "queryText");
+        process.set("queryPlan", "queryPlan");
+        process.set("queryId", "queryId");
+        process.set("queryGraph", "queryGraph");
+
+//        return createInstance(referenceable);
+
+//        // TODO These two are from IDs
+//        List<String> inputNodes = navigatorNode.getInputNodes();
+//        table.set("inputs", inputNodes);
+//
+//        List<String> outputNodes = navigatorNode.getOutputNodes();
+//        table.set("outputs", outputNodes);
+
+//        return table;
+        return process;
     }
 
 }
