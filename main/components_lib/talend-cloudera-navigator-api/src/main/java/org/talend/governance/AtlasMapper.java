@@ -21,12 +21,18 @@ import java.util.*;
 public class AtlasMapper {
 
     static final String DATABASE_TYPE = "DB";
-    static final String TABLE_TYPE = "Table";
     static final String COLUMN_TYPE = "Column";
+    static final String TABLE_TYPE = "Table";
+    static final String VIEW_TYPE = "View";
+    static final String LOAD_PROCESS_TYPE = "LoadProcess";
     static final String STORAGE_DESC_TYPE = "StorageDesc";
 
     public static final String DB_ATTRIBUTE = "db";
     public static final String COLUMNS_ATTRIBUTE = "columns";
+
+    private String ENDPOINT_URL = "http://localhost:21000";
+    private AtlasClient client =  new AtlasClient(ENDPOINT_URL);
+
 
     /**
      * TODO this function must return the appropriate type of the objects that are going to be persisted
@@ -36,29 +42,62 @@ public class AtlasMapper {
     public void map(List<NavigatorNode> navigatorNodes, String jobId) {
         // First create the type definition
         TypesDef typesDef = createTypeDefinitions();
-        String typesAsJSON = TypesSerialization.toJson(typesDef);
-        System.out.println("typesAsJSON = " + typesAsJSON);
+//        List<String> ids = persist(typesDef);
+//        Collection<String> types = getTypes();
+//        System.out.println(types);
 
-        // then we create the Entities
+        // we create the Entities
         Collection<Referenceable> refs = new ArrayList<>();
         for (NavigatorNode navigatorNode : navigatorNodes) {
             Referenceable ref = createEntity(navigatorNode);
             refs.add(ref);
-            String entityJSON = InstanceSerialization.toJson(ref, true);
-            System.out.println(entityJSON);
         }
+        persist(refs);
 
-//        AtlasClient client = null;
-//        try {
-//            JSONArray guids = client.createEntity(refs);
-//        } catch (AtlasServiceException e) {
-//            e.printStackTrace();
-//        }
-
-//        metadataServiceClient.createType(typesAsJSON);
-//        // verify types created
+        // verify types created
 //        verifyTypesCreated();
     }
+
+    private Collection<String> getTypes() {
+        Collection<String> types = new ArrayList<>();
+        try {
+            List<String> existingTypesDef = client.listTypes();
+//            System.out.println(existingTypesDef);
+            for (String existingTypeDef: existingTypesDef) {
+                String type = client.getType(existingTypeDef);
+                types.add(type);
+            }
+        } catch (AtlasServiceException e) {
+            e.printStackTrace();
+        }
+        return types;
+    }
+
+    public List<String> persist(TypesDef typesDef) {
+//        System.out.println("typesAsJSON = " + TypesSerialization.toJson(typesDef));
+        List<String> ids = new ArrayList<>();
+        try {
+            ids = client.createType(typesDef);
+        } catch (AtlasServiceException e) {
+            e.printStackTrace();
+        }
+        return ids;
+    }
+
+
+    public JSONArray persist(Collection<Referenceable> refs) {
+//        for (Referenceable ref : refs) {
+//            System.out.println(InstanceSerialization.toJson(ref, true));
+//        }
+        JSONArray jsonArray = new JSONArray();
+        try {
+            jsonArray = client.createEntity(refs);
+        } catch (AtlasServiceException e) {
+            e.printStackTrace();
+        }
+        return jsonArray;
+    }
+
 
     /**
      *
@@ -68,7 +107,16 @@ public class AtlasMapper {
         ImmutableList<EnumTypeDefinition> enums = ImmutableList.<EnumTypeDefinition>of();
         ImmutableList<StructTypeDefinition> structs = ImmutableList.<StructTypeDefinition>of();
 
-        ImmutableList<HierarchicalTypeDefinition<TraitType>> traits = ImmutableList.<HierarchicalTypeDefinition<TraitType>>of();
+        HierarchicalTypeDefinition<TraitType> dimTraitDef = TypesUtil.createTraitTypeDef("Dimension",  "Dimension Trait", null);
+        HierarchicalTypeDefinition<TraitType> factTraitDef = TypesUtil.createTraitTypeDef("Fact", "Fact Trait", null);
+        HierarchicalTypeDefinition<TraitType> piiTraitDef = TypesUtil.createTraitTypeDef("PII", "PII Trait", null);
+        HierarchicalTypeDefinition<TraitType> metricTraitDef = TypesUtil.createTraitTypeDef("Metric", "Metric Trait", null);
+        HierarchicalTypeDefinition<TraitType> etlTraitDef = TypesUtil.createTraitTypeDef("ETL", "ETL Trait", null);
+        HierarchicalTypeDefinition<TraitType> jdbcTraitDef = TypesUtil.createTraitTypeDef("JdbcAccess", "JdbcAccess Trait", null);
+        HierarchicalTypeDefinition<TraitType> logTraitDef = TypesUtil.createTraitTypeDef("Log Data", "LogData Trait",  null);
+        ImmutableList<HierarchicalTypeDefinition<TraitType>> traits =
+                ImmutableList.of(dimTraitDef, factTraitDef, piiTraitDef, metricTraitDef,
+                        etlTraitDef, jdbcTraitDef, logTraitDef);
 
         HierarchicalTypeDefinition<ClassType> dbClsDef = TypesUtil
                 .createClassTypeDef(DATABASE_TYPE, DATABASE_TYPE, null,
@@ -77,6 +125,19 @@ public class AtlasMapper {
                         TypesUtil.createOptionalAttrDef("locationUri", DataTypes.STRING_TYPE),
                         TypesUtil.createOptionalAttrDef("owner", DataTypes.STRING_TYPE),
                         TypesUtil.createOptionalAttrDef("createTime", DataTypes.LONG_TYPE));
+
+        HierarchicalTypeDefinition<ClassType> storageDescClsDef = TypesUtil
+                .createClassTypeDef(STORAGE_DESC_TYPE, STORAGE_DESC_TYPE, null,
+                        TypesUtil.createOptionalAttrDef("location", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("inputFormat", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("outputFormat", DataTypes.STRING_TYPE),
+                        TypesUtil.createRequiredAttrDef("compressed", DataTypes.STRING_TYPE));
+
+        HierarchicalTypeDefinition<ClassType> columnClsDef = TypesUtil
+                .createClassTypeDef(COLUMN_TYPE, COLUMN_TYPE, null,
+                        TypesUtil.createOptionalAttrDef("name", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("dataType", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("comment", DataTypes.STRING_TYPE));
 
         HierarchicalTypeDefinition<ClassType> tblClsDef = TypesUtil
                 .createClassTypeDef(TABLE_TYPE, TABLE_TYPE, ImmutableSet.of("DataSet"),
@@ -93,14 +154,25 @@ public class AtlasMapper {
                         new AttributeDefinition(COLUMNS_ATTRIBUTE, DataTypes.arrayTypeName(COLUMN_TYPE),
                                 Multiplicity.COLLECTION, true, null));
 
-        HierarchicalTypeDefinition<ClassType> columnClsDef = TypesUtil
-                .createClassTypeDef(COLUMN_TYPE, COLUMN_TYPE, null,
-                        TypesUtil.createOptionalAttrDef("name", DataTypes.STRING_TYPE),
-                        TypesUtil.createOptionalAttrDef("dataType", DataTypes.STRING_TYPE),
-                        TypesUtil.createOptionalAttrDef("comment", DataTypes.STRING_TYPE));
+        HierarchicalTypeDefinition<ClassType> loadProcessClsDef = TypesUtil
+                .createClassTypeDef(LOAD_PROCESS_TYPE, LOAD_PROCESS_TYPE, ImmutableSet.of("Process"),
+                        TypesUtil.createOptionalAttrDef("userName", DataTypes.STRING_TYPE),
+                        TypesUtil.createOptionalAttrDef("startTime", DataTypes.LONG_TYPE),
+                        TypesUtil.createOptionalAttrDef("endTime", DataTypes.LONG_TYPE),
+                        TypesUtil.createRequiredAttrDef("queryText", DataTypes.STRING_TYPE),
+                        TypesUtil.createRequiredAttrDef("queryPlan", DataTypes.STRING_TYPE),
+                        TypesUtil.createRequiredAttrDef("queryId", DataTypes.STRING_TYPE),
+                        TypesUtil.createRequiredAttrDef("queryGraph", DataTypes.STRING_TYPE));
+
+        HierarchicalTypeDefinition<ClassType> viewClsDef = TypesUtil
+                .createClassTypeDef(VIEW_TYPE, VIEW_TYPE, null,
+                        TypesUtil.createUniqueRequiredAttrDef("name", DataTypes.STRING_TYPE),
+                        new AttributeDefinition("db", DATABASE_TYPE, Multiplicity.REQUIRED, false, null),
+                        new AttributeDefinition("inputTables", DataTypes.arrayTypeName(TABLE_TYPE),
+                                Multiplicity.COLLECTION, false, null));
 
         ImmutableList<HierarchicalTypeDefinition<ClassType>> classes =
-                ImmutableList.<HierarchicalTypeDefinition<ClassType>>of(tblClsDef, columnClsDef);
+                ImmutableList.of(dbClsDef, storageDescClsDef, columnClsDef, tblClsDef, loadProcessClsDef, viewClsDef);
 
         return TypesUtil.getTypesDef(enums, structs, traits, classes);
     }
@@ -111,6 +183,7 @@ public class AtlasMapper {
      * @return
      */
     private Referenceable createEntity(NavigatorNode navigatorNode) {
+        //TODO Map given the navigatorType ID
         Referenceable table = new Referenceable(TABLE_TYPE);
         table.set("name", navigatorNode.getName());
 
