@@ -49,20 +49,22 @@ public class AtlasUtils {
 
 
     /**
+     * Create instances in bulk, it tries to guarantee the complete creation of the instances. If it fails it deletes
+     * the partially created ones
      *
-     * @param instan
+     * @param refs
      * @return
      */
-    public static Object createInstances(Collection<Referenceable> refs) throws AtlasServiceException {
-//    public static Object createInstances(Collection<? extends IInstance> instances) {
+    public static Object createBulkEntities(Collection<Referenceable> refs) throws AtlasServiceException {
+//    public static Object createBulkInstances(Collection<? extends IInstance> instances) {
         //shouldn't the argument be Collection<? extends IInstance>
         //TODO JB a real (atomic) server side version, with a real return value for Id,
         // It must delete the entities if it cannot create them all
         // notice that current AtlasClient.createEntity(Collection...) does not guarantee this
-        // Additionally it would be better to have the Ref objects and not the json as a return type
+        // It would be better to have the Ref objects and not the json as a return type
         client.createEntity(refs);
-        // what should be the return type ? Map<Referenceable, Id> ? or otheeven better the Collection of
-        // Referenceables with the IDs included ?
+        // what should be the return type ? Map<Referenceable, Id> ?
+        // or even better the Collection<Referenceable> with the IDs included ?
         return null;
     }
 
@@ -113,10 +115,11 @@ public class AtlasUtils {
      * Checks if the instance is a correct representation of the datatype,
      * this is useful to avoid calling the server to validate instances (refs)
      * @param dataType
-     * @param ref
+     * @param instance
      * @throws AtlasException
      */
-    public static void enforceTypes(IDataType dataType, IInstance instance) throws AtlasException {
+    public static boolean checkTypes(IDataType dataType, IInstance instance) throws AtlasException {
         //TODO this one has lower priority but it would be a blessing to haves
+        return false;
     }
 }
