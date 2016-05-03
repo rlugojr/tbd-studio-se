@@ -10,13 +10,11 @@
 // 9 rue Pages 92150 Suresnes, France
 //
 // ============================================================================
-package org.talend.governance;
+package org.talend.governance.atlas;
 
-import com.cloudera.nav.sdk.model.entities.Entity;
 import org.junit.Test;
 import org.talend.cloudera.navigator.api.NavigatorNode;
-import org.talend.cloudera.navigator.api.util.GeneratorID;
-import org.talend.governance.AtlasMapper;
+import org.talend.governance.atlas.AtlasMapper;
 
 
 import java.util.*;

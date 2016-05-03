@@ -1,4 +1,4 @@
-package org.talend.governance;
+package org.talend.governance.atlas;
 
 import org.apache.atlas.AtlasClient;
 import org.apache.atlas.AtlasException;
