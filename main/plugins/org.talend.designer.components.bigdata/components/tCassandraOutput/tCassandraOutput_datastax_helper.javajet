@@ -216,20 +216,24 @@ class CassandraOutputGenHelper{
 	    <%
 		boolean useBatch = ElementParameterParser.getBooleanValue(node, "__USE_UNLOGGED_BATCH__");
 	    if(useBatch){
-	    %>
-	    	java.util.List<String> columns_<%=cid%> = new java.util.ArrayList<String>();	
-	    	<%
-	    	for(String col : cqlManager.getValueColumns()){
+			boolean groupBatchByKey = ElementParameterParser.getBooleanValue(node, "__GROUP_BATCH_BY_KEY__");
+			if(groupBatchByKey){
 	    	%>
-	    		columns_<%=cid%>.add("<%=col%>");
-	    	<%	
+		    	java.util.List<String> columns_<%=cid%> = new java.util.ArrayList<String>();	
+		    	<%
+		    	for(String col : cqlManager.getValueColumns()){
+		    	%>
+		    		columns_<%=cid%>.add("<%=col%>");
+		    	<%	
+		    	}
+		    	%>
+		    	CassandraBatchUtil_<%=cid%> cassandraBatchUtil_<%=cid%> = new CassandraBatchUtil_<%=cid%>(cluster_<%=cid%>, StringHandling.DQUOTE(<%=ElementParameterParser.getValue(node, "__KEY_SPACE__")%>), StringHandling.DQUOTE(<%=ElementParameterParser.getValue(node, "__COLUMN_FAMILY__")%>), columns_<%=cid%>);
+				java.nio.ByteBuffer currentKey_<%=cid%> = null;     
+				java.nio.ByteBuffer lastKey_<%=cid%> = null;
+				boolean newOne_<%=cid%> = false;    
+	    	<%
 	    	}
 	    	%>
-	    	CassandraBatchUtil_<%=cid%> cassandraBatchUtil_<%=cid%> = new CassandraBatchUtil_<%=cid%>(cluster_<%=cid%>, StringHandling.DQUOTE(<%=ElementParameterParser.getValue(node, "__KEY_SPACE__")%>), StringHandling.DQUOTE(<%=ElementParameterParser.getValue(node, "__COLUMN_FAMILY__")%>), columns_<%=cid%>);
-			java.nio.ByteBuffer currentKey_<%=cid%> = null;     
-			java.nio.ByteBuffer lastKey_<%=cid%> = null;
-			boolean newOne_<%=cid%> = false;    
-	    	
 	        com.datastax.driver.core.BatchStatement batchStmt_<%=cid%> = new com.datastax.driver.core.BatchStatement(com.datastax.driver.core.BatchStatement.Type.UNLOGGED);
 	    <%
 	    }else{

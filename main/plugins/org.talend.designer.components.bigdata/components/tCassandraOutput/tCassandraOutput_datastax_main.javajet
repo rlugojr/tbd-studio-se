@@ -35,36 +35,33 @@
     <%=cqlManager.generateStmt("boundStmt_" + cid, conn.getName())%>
     <%
     if(useBatch){
-    %>
-    	currentKey_<%=cid%> = cassandraBatchUtil_<%=cid%>.getKey(boundStmt_<%=cid%>);
-    	if(lastKey_<%=cid%> != null && lastKey_<%=cid%>.compareTo(currentKey_<%=cid%>) != 0){
-    		newOne_<%=cid%> = true;
-    	}else{
-    		newOne_<%=cid%> = false;
-    	}
-    
-    	if(batchStmt_<%=cid%>.size() > 0 && newOne_<%=cid%>){
-            try{
+    	boolean groupBatchByKey = ElementParameterParser.getBooleanValue(node, "__GROUP_BATCH_BY_KEY__");
+		if(groupBatchByKey){
+    	%>
+	    	currentKey_<%=cid%> = cassandraBatchUtil_<%=cid%>.getKey(boundStmt_<%=cid%>);
+	    	if(lastKey_<%=cid%> != null && lastKey_<%=cid%>.compareTo(currentKey_<%=cid%>) != 0){
+	    		newOne_<%=cid%> = true;
+	    	}else{
+	    		newOne_<%=cid%> = false;
+	    	}
+	    
+	    	if(batchStmt_<%=cid%>.size() > 0 && newOne_<%=cid%>){
                 connection_<%=cid%>.execute(batchStmt_<%=cid%>);
                 batchStmt_<%=cid%>.clear();
-            }catch(java.lang.Exception e){
-                throw(e);
-            }
+	        }
+	        lastKey_<%=cid%> = currentKey_<%=cid%>;
+        <%
         }
+        %>
     
         batchStmt_<%=cid%>.add(boundStmt_<%=cid%>);
         
-        lastKey_<%=cid%> = currentKey_<%=cid%>;
         
         if(batchStmt_<%=cid%>.size() >= <%=batchSize%>){
-            try{
-                connection_<%=cid%>.execute(batchStmt_<%=cid%>);
-                batchStmt_<%=cid%>.clear();
-            }catch(java.lang.Exception e){
-                throw(e);
-            }
+	        connection_<%=cid%>.execute(batchStmt_<%=cid%>);
+	        batchStmt_<%=cid%>.clear();
         }
-    <%
+	<%
     }else{
     %>
         try{
